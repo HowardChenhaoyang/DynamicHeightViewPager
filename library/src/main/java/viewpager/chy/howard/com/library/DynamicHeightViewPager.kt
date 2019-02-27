@@ -1,10 +1,12 @@
 package viewpager.chy.howard.com.library
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.support.v4.view.ViewPager
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import java.lang.ref.WeakReference
 
 interface DynamicHeightViewPagerItemInterface {
     fun getOriginContentHeight(): Int
@@ -17,6 +19,19 @@ class DynamicHeightViewPager : ViewPager {
 
     constructor(context: Context) : super(context)
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
+    private var preHeight = 0
+    private var animator: ValueAnimator? = null
+    private var animatedItem: WeakReference<DynamicHeightViewPagerItemInterface>? = null
+
+    private var animatorUpdateListener: ValueAnimator.AnimatorUpdateListener = ValueAnimator.AnimatorUpdateListener{
+        val animatedItem = animatedItem?.get()?:return@AnimatorUpdateListener
+        resize.invoke(null, animatedItem, it.animatedValue as Int)
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        animator?.cancel()
+    }
 
     private lateinit var dynamicHeightItemViews: List<DynamicHeightViewPagerItemInterface>
 
@@ -104,6 +119,19 @@ class DynamicHeightViewPager : ViewPager {
                         resize.invoke(itemView, itemViews[index - 1], nextViewHeight)
                     }
                 }
+            }
+            if (animatedItem?.get() == itemView) {
+                animator?.cancel()
+            }
+            if (delta == 0f) {
+                animator?.cancel()
+                val animator = ValueAnimator.ofInt(preHeight, itemView.getOriginContentHeight())
+                animatedItem = WeakReference(itemView)
+                animator.addUpdateListener(animatorUpdateListener)
+                animator.duration = 50
+                animator.start()
+                this.animator = animator
+                preHeight = itemView.getOriginContentHeight()
             }
         }
     }
