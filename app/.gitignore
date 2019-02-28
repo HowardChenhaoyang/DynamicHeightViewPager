@@ -14,11 +14,6 @@ build/
 # Local configuration file (sdk path, etc)
 local.properties
 
-.idea/workspace.xml
-.idea/libraries
-.idea/gradle.xml
-.idea/misc.xml
-
 # OSX files
 .DS_Store
 
@@ -26,10 +21,6 @@ captures/
 # generated files（studio中应该不需要）
 bin/
 gen/
-.idea/gradle.xml
-.idea/misc.xml
 .idea/
-.idea/codeStyles/
-.idea/runConfigurations.xml
 # Windows thumbnail db
 Thumbs.db
