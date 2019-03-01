@@ -19,38 +19,48 @@ class DynamicHeightViewPager : ViewPager {
 
     constructor(context: Context) : super(context)
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
+
+    // viewPager滚动停止后用来更正高度，使用动画使得过程更平滑
     private var preHeight = 0
     private var animator: ValueAnimator? = null
     private var animatedItem: WeakReference<DynamicHeightViewPagerItemInterface>? = null
+    private val animationDuration = 50L
 
-    private var animatorUpdateListener: ValueAnimator.AnimatorUpdateListener = ValueAnimator.AnimatorUpdateListener{
-        val animatedItem = animatedItem?.get()?:return@AnimatorUpdateListener
+    private var animatorUpdateListener: ValueAnimator.AnimatorUpdateListener = ValueAnimator.AnimatorUpdateListener {
+        val animatedItem = animatedItem?.get() ?: return@AnimatorUpdateListener
         resize.invoke(null, animatedItem, it.animatedValue as Int)
-    }
-
-    override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
-        animator?.cancel()
     }
 
     private lateinit var dynamicHeightItemViews: List<DynamicHeightViewPagerItemInterface>
 
-    private var moveDirection = 0f
+    // 用来渐变高度的PageTransformer，内部调用了outerTransformer的方法
+    private val innerTransformer: PageTransformer by lazy {
+        createPageTransformer()
+    }
 
+    // 外部设置的PageTransformer
+    private var outerTransformer: PageTransformer? = null
+
+    // 滑动方向
+    private var moveDirection = 0f
+    // 辅助判断滑动方向
     private var touchPoint = object {
         var x = 0f
         var y = 0f
     }
 
     private val resize: (nextShowAdaptiveViewPagerView: DynamicHeightViewPagerItemInterface?, currentAdaptiveViewPagerView: DynamicHeightViewPagerItemInterface, height: Int) -> Unit =
-        { nextShowItemView, currentItemView, height ->
-            layoutParams = layoutParams.apply {
-                this.height = height
+            { nextShowItemView, currentItemView, height ->
+                layoutParams = layoutParams.apply {
+                    this.height = height
+                }
+                nextShowItemView?.resize(this, false, height, moveDirection)
+                currentItemView.resize(this, true, height, moveDirection)
             }
-            nextShowItemView?.resize(this, false, height, moveDirection)
-            currentItemView.resize(this, true, height, moveDirection)
-        }
 
+    init {
+        setPageTransformer(false, innerTransformer)
+    }
 
     fun init(dynamicHeightItemViews: List<DynamicHeightViewPagerItemInterface>, selectedItem: Int = 0) {
         this.dynamicHeightItemViews = dynamicHeightItemViews
@@ -58,11 +68,16 @@ class DynamicHeightViewPager : ViewPager {
         currentItem = selectedItem
         if (!dynamicHeightItemViews.isNullOrEmpty()) {
             resize.invoke(
-                null,
-                dynamicHeightItemViews[selectedItem],
-                dynamicHeightItemViews[selectedItem].getOriginContentHeight()
+                    null,
+                    dynamicHeightItemViews[selectedItem],
+                    dynamicHeightItemViews[selectedItem].getOriginContentHeight()
             )
         }
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        animator?.cancel()
     }
 
     private fun checkIndex(index: Int) {
@@ -81,41 +96,34 @@ class DynamicHeightViewPager : ViewPager {
         updateCurrentItem(item)
     }
 
-    private fun updateCurrentItem(currentItem: Int) {
-        checkIndex(currentItem)
-        resize.invoke(
-            null,
-            dynamicHeightItemViews[currentItem],
-            dynamicHeightItemViews[currentItem].getOriginContentHeight()
-        )
-    }
-
-    init {
-        setPageTransformer(false) { view, delta ->
-            val itemViews = dynamicHeightItemViews ?: return@setPageTransformer
+    private fun createPageTransformer(): PageTransformer {
+        return PageTransformer { view, delta ->
+            val itemViews = dynamicHeightItemViews
             val itemView = (view as DynamicHeightViewPagerItemInterface)
             val index = itemViews.indexOf(itemView)
             if (delta >= -1f && delta <= 1f) {
                 if (moveDirection > 0f) { // 向左翻页
                     if (delta < 0) {
                         if (index >= itemViews.size - 1) {
-                            return@setPageTransformer
+                            return@PageTransformer
                         }
                         val nextViewHeight = itemViews[index + 1].getOriginContentHeight() +
                                 ((itemView.getOriginContentHeight() - itemViews[index + 1].getOriginContentHeight()) * (1 - Math.abs(
-                                    delta
+                                        delta
                                 ))).toInt()
+                        preHeight = nextViewHeight
                         resize.invoke(itemView, itemViews[index + 1], nextViewHeight)
                     }
                 } else {
                     if (delta > 0) {
                         if (index < 1) {
-                            return@setPageTransformer
+                            return@PageTransformer
                         }
                         val nextViewHeight = itemViews[index - 1].getOriginContentHeight() +
                                 ((itemView.getOriginContentHeight() - itemViews[index - 1].getOriginContentHeight()) * (1 - Math.abs(
-                                    delta
+                                        delta
                                 ))).toInt()
+                        preHeight = nextViewHeight
                         resize.invoke(itemView, itemViews[index - 1], nextViewHeight)
                     }
                 }
@@ -128,14 +136,34 @@ class DynamicHeightViewPager : ViewPager {
                 val animator = ValueAnimator.ofInt(preHeight, itemView.getOriginContentHeight())
                 animatedItem = WeakReference(itemView)
                 animator.addUpdateListener(animatorUpdateListener)
-                animator.duration = 50
+                animator.duration = animationDuration
                 animator.start()
                 this.animator = animator
                 preHeight = itemView.getOriginContentHeight()
             }
+
+            outerTransformer?.transformPage(view, delta)
         }
     }
 
+    private fun updateCurrentItem(currentItem: Int) {
+        checkIndex(currentItem)
+        resize.invoke(
+                null,
+                dynamicHeightItemViews[currentItem],
+                dynamicHeightItemViews[currentItem].getOriginContentHeight()
+        )
+    }
+
+    override fun setPageTransformer(reverseDrawingOrder: Boolean, transformer: PageTransformer?, pageLayerType: Int) {
+        super.setPageTransformer(reverseDrawingOrder, innerTransformer, pageLayerType)
+        if (transformer == innerTransformer) {
+            super.setPageTransformer(reverseDrawingOrder, transformer, pageLayerType)
+        } else {
+            super.setPageTransformer(reverseDrawingOrder, innerTransformer, pageLayerType)
+            outerTransformer = transformer
+        }
+    }
 
     override fun dispatchTouchEvent(event: MotionEvent?): Boolean {
         when (event?.action) {
