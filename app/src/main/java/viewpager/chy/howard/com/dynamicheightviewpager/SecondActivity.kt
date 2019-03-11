@@ -43,12 +43,13 @@ class SecondActivity : AppCompatActivity() {
             }
 
             override fun instantiateItem(container: ViewGroup, position: Int): Any {
-                container.addView(dynamicHeightItemViews[position])
-                return dynamicHeightItemViews[position]
+                val  dynamicHeightItemView = dynamicHeightItemViews[position]
+                container.addView(dynamicHeightItemView.getItemView())
+                return dynamicHeightItemView.getItemView()
             }
 
             override fun destroyItem(container: ViewGroup, position: Int, `object`: Any) {
-                container.removeView(dynamicHeightItemViews[position])
+                dynamicHeightItemViews[position].removeViewFromParent(container)
             }
 
             override fun getCount(): Int = dynamicHeightItemViews.size
@@ -71,10 +72,8 @@ class SecondActivity : AppCompatActivity() {
 
 
     private fun createComplicatedDynamicHeightViewPagerItemView(@DrawableRes imageId: Int) =
-        ComplicatedDynamicHeightViewPagerItemView(this).apply {
-            init {
-                setImageResource(imageId)
-            }
+        ComplicatedDynamicHeightViewPagerItemView(this){
+            setImageResource(imageId)
         }
 
     companion object {

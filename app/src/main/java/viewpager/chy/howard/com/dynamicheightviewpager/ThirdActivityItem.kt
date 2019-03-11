@@ -1,26 +1,68 @@
 package viewpager.chy.howard.com.dynamicheightviewpager
 
 import android.content.Context
-import android.util.AttributeSet
+import android.support.annotation.DrawableRes
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import viewpager.chy.howard.com.library.ComplicatedDynamicHeightViewPagerItem
+import viewpager.chy.howard.com.library.DynamicHeightViewPagerItemInterface
+import viewpager.chy.howard.com.library.DynamicHeightViewPagerView
 import kotlin.random.Random
 
 private val random = Random(System.currentTimeMillis())
 
-class ThirdActivityItem : FrameLayout, ComplicatedDynamicHeightViewPagerItem {
-    constructor(context: Context) : super(context)
-    constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
-    constructor(context: Context, attrs: AttributeSet?, defStyleAttr: Int) : super(context, attrs, defStyleAttr)
+class ThirdActivityItem(private val context: Context, private val position: Int, @DrawableRes private val imageId: Int) : ComplicatedDynamicHeightViewPagerItem {
+
+    private var thirdActivityItemView: ThirdActivityItemView? = null
+
+    private fun initThirdActivityItemView() {
+        if (thirdActivityItemView == null) {
+            thirdActivityItemView = ThirdActivityItemView(context, this)
+            thirdActivityItemView!!.init(position){
+                setImageResource(imageId)
+            }
+        }
+    }
+
+    override fun getOriginContentHeight(): Int {
+        initThirdActivityItemView()
+        return thirdActivityItemView!!.getOriginContentHeight()
+    }
+
+    override fun getResizeView(): View {
+        initThirdActivityItemView()
+        return thirdActivityItemView!!.getResizeView()
+    }
+
+    fun getItemView(): View {
+        initThirdActivityItemView()
+        return thirdActivityItemView!!
+    }
+
+    fun removeFromParent(parent: ViewGroup){
+        parent.removeView(thirdActivityItemView)
+        thirdActivityItemView = null
+    }
+
+    override fun onScaleChanged(scale: Float) {
+
+    }
+}
+
+private class ThirdActivityItemView(
+    context: Context,
+    private val dynamicHeightViewPagerItemInterface: DynamicHeightViewPagerItemInterface
+) : FrameLayout(context), DynamicHeightViewPagerView {
 
     private val frameLayout = FrameLayout(context)
     private val imageView = ImageView(context)
     private val textView = TextView(context)
     private val contentHeight: Int
+
     init {
         frameLayout.setBackgroundResource(R.color.primary_dark_material_dark)
         textView.gravity = Gravity.CENTER
@@ -53,11 +95,9 @@ class ThirdActivityItem : FrameLayout, ComplicatedDynamicHeightViewPagerItem {
         textView.text = "当前是第${index + 1}张图片"
     }
 
-    override fun getOriginContentHeight(): Int = contentHeight
+    fun getOriginContentHeight(): Int = contentHeight
 
-    override fun getResizeView(): View = frameLayout
+    fun getResizeView(): View = frameLayout
 
-    override fun onScaleChanged(scale: Float) {
-
-    }
+    override fun getDynamicHeightViewPagerItemInterface() = dynamicHeightViewPagerItemInterface
 }

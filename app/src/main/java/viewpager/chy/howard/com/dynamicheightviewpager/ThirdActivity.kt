@@ -42,12 +42,13 @@ class ThirdActivity : AppCompatActivity() {
             }
 
             override fun instantiateItem(container: ViewGroup, position: Int): Any {
-                container.addView(dynamicHeightItemViews[position])
-                return dynamicHeightItemViews[position]
+                val dynamicHeightItemView = dynamicHeightItemViews[position]
+                container.addView(dynamicHeightItemView.getItemView())
+                return dynamicHeightItemView.getItemView()
             }
 
             override fun destroyItem(container: ViewGroup, position: Int, `object`: Any) {
-                container.removeView(dynamicHeightItemViews[position])
+                dynamicHeightItemViews[position].removeFromParent(container)
             }
 
             override fun getCount(): Int = dynamicHeightItemViews.size
@@ -62,18 +63,14 @@ class ThirdActivity : AppCompatActivity() {
             }
 
             override fun onPageSelected(p0: Int) {
-                textView.text = "${p0+1}/${imageIds.size}"
+                textView.text = "${p0 + 1}/${imageIds.size}"
             }
         })
         textView.text = "0/${imageIds.size}"
     }
 
-    private fun createThirdItemView(index: Int, @DrawableRes imageId: Int) =
-        ThirdActivityItem(this).apply {
-            init(index) {
-                setImageResource(imageId)
-            }
-        }
+    private fun createThirdItemView(position: Int, @DrawableRes imageId: Int) =
+        ThirdActivityItem(this, position, imageId)
 
     companion object {
         fun start(activity: Activity) {

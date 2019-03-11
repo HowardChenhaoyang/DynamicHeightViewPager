@@ -6,7 +6,12 @@ import android.support.v4.view.ViewPager
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import java.lang.RuntimeException
 import java.lang.ref.WeakReference
+
+interface DynamicHeightViewPagerView{
+    fun getDynamicHeightViewPagerItemInterface(): DynamicHeightViewPagerItemInterface
+}
 
 interface DynamicHeightViewPagerItemInterface {
     fun getOriginContentHeight(): Int
@@ -96,10 +101,20 @@ class DynamicHeightViewPager : ViewPager {
         updateCurrentItem(item)
     }
 
+    private fun getDynamicHeightViewPagerItemInterfaceFromView(view: View): DynamicHeightViewPagerItemInterface{
+        return if (view is DynamicHeightViewPagerView){
+            view.getDynamicHeightViewPagerItemInterface()
+        }else if (view.tag is DynamicHeightViewPagerItemInterface){
+            view.tag as DynamicHeightViewPagerItemInterface
+        }else{
+            throw RuntimeException("child of viewPager must implement DynamicHeightViewPagerView or set the tag to DynamicHeightViewPagerItemInterface")
+        }
+    }
+
     private fun createPageTransformer(): PageTransformer {
         return PageTransformer { view, delta ->
             val itemViews = dynamicHeightItemViews
-            val itemView = (view as DynamicHeightViewPagerItemInterface)
+            val itemView = getDynamicHeightViewPagerItemInterfaceFromView(view)
             val index = itemViews.indexOf(itemView)
             if (delta >= -1f && delta <= 1f) {
                 if (moveDirection > 0f) { // 向左翻页
