@@ -148,12 +148,14 @@ class DynamicHeightViewPager : ViewPager {
             }
             if (delta == 0f) {
                 animator?.cancel()
-                val animator = ValueAnimator.ofInt(preHeight, itemView.getOriginContentHeight())
-                animatedItem = WeakReference(itemView)
-                animator.addUpdateListener(animatorUpdateListener)
-                animator.duration = animationDuration
-                animator.start()
-                this.animator = animator
+                if (height != itemView.getOriginContentHeight()){
+                    val animator = ValueAnimator.ofInt(preHeight, itemView.getOriginContentHeight())
+                    animatedItem = WeakReference(itemView)
+                    animator.addUpdateListener(animatorUpdateListener)
+                    animator.duration = animationDuration
+                    animator.start()
+                    this.animator = animator
+                }
                 preHeight = itemView.getOriginContentHeight()
             }
 
