@@ -1,3 +1,5 @@
+<a href="https://996.icu"><img src="https://img.shields.io/badge/link-996.icu-red.svg" alt="996.icu" /></a>
+
 blog 地址： https://www.jianshu.com/p/14389b125390
 
 先看效果图
